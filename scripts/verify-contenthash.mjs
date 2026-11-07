@@ -20,7 +20,7 @@ const abi = [
 ];
 const inner = encodeFunctionData({ abi, functionName: "contenthash", args: [node] });
 const expected = "0x" + contentHash.encode("ipfs", CID);
-const RPCS = ["https://1rpc.io/sepolia", "https://rpc.sepolia.org", "https://ethereum-sepolia-rpc.publicnode.com"];
+const RPCS = ["https://ethereum-sepolia.publicnode.com", "https://gateway.tenderly.co/public/sepolia", "https://0xrpc.io/sep", "https://sepolia.rpc.thirdweb.com"];
 
 for (const url of RPCS) {
   try {

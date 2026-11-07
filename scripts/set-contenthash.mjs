@@ -36,9 +36,10 @@ console.log("deployer:", account.address);
 
 // Try several public Sepolia RPCs until one answers.
 const RPCS = [
-  "https://ethereum-sepolia-rpc.publicnode.com",
-  "https://1rpc.io/sepolia",
-  "https://rpc.sepolia.org",
+  "https://ethereum-sepolia.publicnode.com",
+  "https://gateway.tenderly.co/public/sepolia",
+  "https://0xrpc.io/sep",
+  "https://sepolia.rpc.thirdweb.com",
 ];
 let RPC;
 for (const url of RPCS) {
