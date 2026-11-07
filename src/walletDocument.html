@@ -467,6 +467,11 @@ const fmtUsdc = (raw) => { try { return (Number(BigInt(raw)) / 1e6).toFixed(2); 
 const pad32 = (hex) => hex.replace(/^0x/, "").toLowerCase().padStart(64, "0");
 const erc20BalanceOf = (addr) => "0x70a08231" + pad32(addr);
 const erc20Transfer = (to, amount) => "0xa9059cbb" + pad32(to) + pad32("0x" + amount.toString(16));
+// One descriptor per sendable asset — keyed by sendAsset. Adding a token is one row.
+const ASSETS = {
+  eth:  { unit: "ETH",  bal: () => balEth,  build: (to, f) => ({ to, value: "0x" + BigInt(Math.round(f * 1e18)).toString(16) }) },
+  usdc: { unit: "USDC", bal: () => balUsdc, build: (to, f) => ({ to: USDC, value: "0x0", data: erc20Transfer(to, BigInt(Math.round(f * 1e6))) }) },
+};
 async function copy(text, label) {
   try { await navigator.clipboard.writeText(text); toast((label || "Copied") + " to clipboard", "good"); }
   catch { toast("Copy blocked by sandbox", "bad"); }
@@ -513,15 +518,15 @@ async function refreshBalance() {
   if (!ADDR) return;
   $("bal").classList.add("skeleton");
   try {
-    const wei = await eth().request({ method: "eth_getBalance", params: [ADDR, "latest"] });
+    const [wei, raw, code] = await Promise.all([
+      eth().request({ method: "eth_getBalance", params: [ADDR, "latest"] }),
+      eth().request({ method: "eth_call", params: [{ to: USDC, data: erc20BalanceOf(ADDR) }, "latest"] }).catch(() => null),
+      eth().request({ method: "eth_getCode", params: [ADDR, "latest"] }),
+    ]);
     balEth = fmtEth(wei);
-    try {
-      const raw = await eth().request({ method: "eth_call", params: [{ to: USDC, data: erc20BalanceOf(ADDR) }, "latest"] });
-      balUsdc = fmtUsdc(raw && raw !== "0x" ? raw : "0x0");
-    } catch { balUsdc = "—"; }
+    balUsdc = raw == null ? "—" : fmtUsdc(raw && raw !== "0x" ? raw : "0x0");
     syncPayBal();
     renderBalance();
-    const code = await eth().request({ method: "eth_getCode", params: [ADDR, "latest"] });
     const deployed = code && code !== "0x";
     $("statePill").textContent = deployed ? "deployed" : "counterfactual";
     $("statePill").classList.toggle("deployed", !!deployed);
@@ -590,10 +595,10 @@ document.querySelectorAll(".keypad-btn").forEach((b) => (b.onclick = () => press
 
 /* ---- asset toggle (ETH / USDC) ---- */
 function syncPayBal() {
-  const isU = sendAsset === "usdc";
-  $("amtUnit").textContent = isU ? "USDC" : "ETH";
-  $("payBalUnit").textContent = isU ? "USDC" : "ETH";
-  $("payBal").textContent = isU ? balUsdc : balEth;
+  const a = ASSETS[sendAsset];
+  $("amtUnit").textContent = a.unit;
+  $("payBalUnit").textContent = a.unit;
+  $("payBal").textContent = a.bal();
 }
 function selectAsset(a) {
   sendAsset = a;
@@ -684,19 +689,19 @@ $("disconnectBtn").onclick = async () => {
   } catch (e) { toast(e.message || "Could not disconnect", "bad"); }
 };
 
+const SIGN_HTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg> Review &amp; sign with passkey';
+
 $("sendBtn").onclick = async () => {
   const to = $("to").value.trim();
   const amount = amtStr;
   if (!/^0x[0-9a-fA-F]{40}$/.test(to)) return toast("Enter a valid 0x address", "bad");
   const f = parseFloat(amount);
   if (!(f > 0)) return toast("Enter an amount greater than zero", "bad");
-  const isU = sendAsset === "usdc";
-  const unit = isU ? "USDC" : "ETH";
-  const held = parseFloat(isU ? balUsdc : balEth);
+  const a = ASSETS[sendAsset];
+  const unit = a.unit;
+  const held = parseFloat(a.bal());
   if (Number.isFinite(held) && f > held) return toast("Amount exceeds your " + unit + " balance", "bad");
-  const params = isU
-    ? [{ to: USDC, value: "0x0", data: erc20Transfer(to, BigInt(Math.round(f * 1e6))) }]
-    : [{ to, value: "0x" + BigInt(Math.round(f * 1e18)).toString(16) }];
+  const params = [a.build(to, f)];
   const btn = $("sendBtn");
   btn.disabled = true; btn.textContent = "Confirm with your passkey…";
   try {
@@ -712,10 +717,10 @@ $("sendBtn").onclick = async () => {
   finally {
     btn.disabled = false;
     if (!btn.classList.contains("sent")) {
-      btn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg> Review &amp; sign with passkey';
+      btn.innerHTML = SIGN_HTML;
     }
     setTimeout(() => {
-      btn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg> Review &amp; sign with passkey';
+      btn.innerHTML = SIGN_HTML;
     }, 1700);
   }
 };
