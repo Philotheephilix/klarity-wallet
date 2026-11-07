@@ -1,0 +1,63 @@
+:root { color-scheme: dark; font-family: -apple-system, system-ui, sans-serif; }
+* { box-sizing: border-box; }
+
+/* The page is the "desk" the phone sits on. It never scrolls — all scrolling
+   happens inside the phone card. 100dvh tracks the real viewport on mobile
+   (where the URL bar grows/shrinks), with svh as a fallback. */
+body {
+  margin: 0; background: #070a10; color: #e6e9ef;
+  min-height: 100svh; height: 100dvh;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+
+/* #app is the phone. On wide screens it's a centered 390×844 card with a
+   rounded bezel; on mobile it fills the screen edge-to-edge like a native app. */
+#app {
+  width: 390px;
+  height: min(940px, calc(100dvh - 32px));
+  display: flex; flex-direction: column; overflow: hidden;
+  background: #070a10;
+  border: 1px solid #1a2130; border-radius: 28px;
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.02);
+}
+
+@media (max-width: 767px) {
+  body { align-items: stretch; justify-content: stretch; }
+  #app {
+    width: 100%; height: 100dvh; min-height: 100svh;
+    border: 0; border-radius: 0; box-shadow: none;
+  }
+}
+
+header {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 10px; gap: 12px; flex-wrap: wrap;
+  border-bottom: 1px solid #1a2130;
+}
+.brand { font-weight: 700; font-size: 15px; }
+.origin { display: flex; gap: 6px; font-size: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.origin span { padding: 3px 8px; border-radius: 99px; background: #141c2b; color: #9db2d6; }
+.origin .net { background: #16281c; color: #6ee7a0; }
+.origin .anon.on { background: #1c2616; color: #a3e635; }
+.origin .anon.off { background: #2a1c16; color: #fbbf24; }
+.origin .src { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.status { flex: none; padding: 6px 16px; font-size: 11px; color: #9aa4b8; border-bottom: 1px solid #1a2130; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.frame { flex: 1; min-height: 0; overflow: hidden; }
+.frame iframe { width: 100%; height: 100%; min-height: 0; border: 0; display: block; }
+
+.confirm {
+  position: fixed; inset: 0; background: rgba(4,7,12,.82);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+}
+.confirm-box { background: #0f1520; border: 1px solid #243046; border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; }
+.confirm-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+.confirm-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 13px; border-bottom: 1px solid #192235; }
+.confirm-row span:first-child { color: #9aa4b8; }
+.mono { font-family: ui-monospace, Menlo, monospace; word-break: break-all; text-align: right; }
+.confirm-actions { display: flex; gap: 10px; margin-top: 16px; }
+.confirm-actions button { flex: 1; padding: 11px; border: 0; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.confirm-actions #approveBtn { background: #1d4ed8; color: #fff; }
+.confirm-actions .ghost { background: #1a2335; color: #cbd5e1; }
