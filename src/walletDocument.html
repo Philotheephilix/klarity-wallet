@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Klarity</title>
+<style>
+  :root {
+    --bg-start: #92c4bc;
+    --bg-mid: #86b9b1;
+    --bg-end: #7eb1a9;
+    --yellow-card: #fcf465;
+    --text-dark: #151816;
+    /* Secondary text on WHITE/yellow card surfaces — darkened to meet WCAG AA
+       (>=4.5:1) for small text. Was #8c9690 (failed: 3.05 on white). */
+    --text-muted: #616c66;
+    /* Smallest labels on white — AA at #5c6761 (5.89:1). Was #6f7e75. */
+    --text-faint: #5c6761;
+    /* Secondary text sitting DIRECTLY on the mint-green body gradient. Mint is a
+       much darker backdrop than white, so it needs its own near-ink shade to
+       clear AA on the worst mint stop (#7eb1a9 -> 4.72:1). */
+    --text-on-mint: #313d38;
+    --green-pos: #2b8a57;
+    --red-neg: #bc3b2c;
+    --dark-pill: #141618;
+    --card-white: #ffffff;
+    --soft: #f5f6f7;
+    --soft-2: #f7f7f8;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  html, body { margin: 0; }
+  html { height: 100%; }
+  body {
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(circle at 50% 42%, var(--bg-start) 0%, var(--bg-mid) 60%, var(--bg-end) 100%);
+    background-attachment: fixed;
+    color: var(--text-dark);
+    height: 100%;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    font-size: 15px; line-height: 1.4;
+  }
+  .wrap {
+    max-width: 420px; margin: 0 auto;
+    min-height: 100%;
+    padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column;
+  }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  /* ---------- top bar ---------- */
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .logo { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 15px; letter-spacing: -.2px; color: var(--text-dark); }
+  .logo .mark {
+    width: 28px; height: 28px; border-radius: 9px; flex: none;
+    background: var(--dark-pill); display: grid; place-items: center;
+  }
+  .logo .mark span {
+    width: 11px; height: 11px; border-radius: 4px; background: var(--yellow-card);
+  }
+  .netchip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600;
+    padding: 6px 11px; border-radius: 99px; background: var(--dark-pill); color: #fff;
+  }
+  .netchip .dot { width: 6px; height: 6px; border-radius: 50%; background: #5fd39a; }
+
+  /* ---------- balance card (yellow) ---------- */
+  .balance-outer {
+    background: var(--card-white); border-radius: 30px; padding: 7px 7px 13px;
+    box-shadow: 0 10px 28px rgba(20,45,35,.06); margin-bottom: 16px; position: relative;
+  }
+  .state {
+    position: absolute; top: 18px; left: 18px; z-index: 3; font-size: 11px; font-weight: 700;
+    padding: 4px 9px; border-radius: 99px; color: var(--text-muted);
+    background: rgba(20,22,24,.06); letter-spacing: .2px;
+  }
+  .state.deployed { color: var(--green-pos); background: rgba(43,138,87,.12); }
+  .yellow-balance-box {
+    background: var(--yellow-card); border-radius: 24px; padding: 18px 16px 19px;
+    text-align: center; position: relative;
+    box-shadow: 0 14px 26px -6px rgba(246,234,65,.58);
+  }
+  .yellow-balance-box .cap { font-size: 14.5px; font-weight: 700; color: var(--text-dark); letter-spacing: -.1px; }
+  .yellow-balance-box .sub { font-size: 11px; font-weight: 500; color: #6f6c37; margin-top: 2px; letter-spacing: .1px; }
+  .yellow-balance-box .amt {
+    display: flex; align-items: baseline; justify-content: center; gap: 6px;
+    margin: 10px 0 5px;
+  }
+  .yellow-balance-box .amt .n { font-size: 33px; font-weight: 800; letter-spacing: -.9px; line-height: 1.15; color: var(--dark-pill); }
+  .yellow-balance-box .amt .u { font-size: 15px; font-weight: 700; color: #6f6c37; }
+  .yellow-balance-box .fiat { font-size: 12.5px; font-weight: 600; color: var(--text-dark); }
+  .yellow-balance-box .usdc-line {
+    display: inline-flex; align-items: baseline; gap: 5px; margin-top: 9px;
+    padding: 4px 11px; border-radius: 99px; background: rgba(20,22,24,.06);
+  }
+  .yellow-balance-box .usdc-line .n { font-size: 14px; font-weight: 800; color: var(--dark-pill); letter-spacing: -.2px; }
+  .yellow-balance-box .usdc-line .u { font-size: 11px; font-weight: 700; color: #6f6c37; }
+  .eye {
+    position: absolute; top: 15px; right: 16px; width: 28px; height: 28px; border: 0; background: none;
+    display: grid; place-items: center; border-radius: 50%; cursor: pointer; padding: 0;
+  }
+  .eye:hover { background: rgba(0,0,0,.05); }
+  .eye svg { width: 16px; height: 16px; stroke: var(--dark-pill); stroke-width: 1.8; fill: none; }
+
+  /* account chip + disconnect under balance */
+  .acct-row { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 10px 2px; }
+  .acct {
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    background: var(--soft); border-radius: 99px; padding: 7px 12px;
+    font-size: 12px; font-weight: 600; color: var(--text-dark); border: 0; font-family: inherit;
+    transition: background .15s;
+  }
+  .acct:hover { background: #eceeef; }
+  .acct .copy svg { display: block; }
+  .disconnect {
+    display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-family: inherit;
+    background: rgba(188,59,44,.08); color: var(--red-neg); border: 0; border-radius: 99px;
+    padding: 7px 11px; font-size: 11.5px; font-weight: 600; transition: background .15s;
+  }
+  .disconnect:hover { background: rgba(188,59,44,.15); }
+  .disconnect.confirm { background: var(--red-neg); color: #fff; }
+  .disconnect svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+  /* ---------- action row (Pay / Receive / Refresh) ---------- */
+  .actions { display: grid; grid-template-columns: repeat(3,1fr); align-items: center; padding: 2px 0 0; }
+  .action {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+    background: none; border: 0; cursor: pointer; font-family: inherit; padding: 2px 0;
+    color: var(--text-on-mint); transition: color .15s;
+  }
+  .action + .action { border-left: 1px solid #eff1ef; }
+  .action:hover { color: var(--dark-pill); }
+  .action .ic { width: 24px; height: 24px; display: grid; place-items: center; }
+  .action svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 1.6; fill: none; }
+  .action .lbl { font-size: 11px; font-weight: 600; }
+
+  /* ---------- segment tabs ---------- */
+  .segment {
+    display: flex; gap: 4px; background: var(--card-white); border-radius: 99px; padding: 5px;
+    margin: 16px 0 12px; box-shadow: 0 6px 20px rgba(20,40,30,.05);
+  }
+  .segment button {
+    flex: 1; border: 0; background: transparent; color: var(--text-muted); font-family: inherit;
+    font-weight: 600; font-size: 12.5px; padding: 9px; border-radius: 99px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .segment button.on { background: var(--dark-pill); color: #fff; }
+  .asset-seg { margin: 0; box-shadow: none; background: var(--soft-2); }
+
+  .panel { display: none; }
+  .panel.on { display: block; animation: fade .2s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+  .sheet { background: var(--card-white); border-radius: 28px; padding: 18px; box-shadow: 0 6px 24px rgba(20,45,35,.05); }
+
+  /* ---------- send form ---------- */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .inputwrap { position: relative; }
+  input {
+    width: 100%; padding: 13px 14px; border-radius: 13px; border: 0; background: var(--soft-2);
+    color: var(--text-dark); font-family: inherit; font-size: 14px; font-weight: 500;
+    transition: box-shadow .15s;
+  }
+  input.mono { font-size: 13px; }
+  input:focus { outline: none; box-shadow: inset 0 0 0 1.5px var(--dark-pill); }
+  input::placeholder { color: var(--text-muted); }
+  .suffix { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; font-weight: 700; }
+
+  /* big amount display + keypad */
+  .amount-display { text-align: center; margin: 4px 0 12px; }
+  .amount-display .big { font-size: 34px; font-weight: 800; letter-spacing: -.9px; color: var(--dark-pill); line-height: 1.1; word-break: break-all; }
+  .amount-display .big .u { font-size: 17px; font-weight: 700; color: var(--text-muted); margin-left: 4px; }
+  .amount-display .bal { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-top: 5px; }
+  .keypad { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 14px 0; }
+  .keypad-btn {
+    background: var(--soft); border: 0; border-radius: 13px; height: 46px; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600;
+    color: var(--text-dark); cursor: pointer; transition: background .12s, transform .08s;
+  }
+  .keypad-btn:hover { background: #eceeef; }
+  .keypad-btn:active { background: #e2e5e7; transform: scale(.96); }
+  .keypad-btn.ghost { background: transparent; }
+  .keypad-btn.ghost:hover { background: var(--soft); }
+  .keypad-btn svg { width: 18px; height: 18px; stroke: var(--dark-pill); stroke-width: 1.9; fill: none; }
+
+  button.primary {
+    width: 100%; height: 50px; border: 0; border-radius: 99px; font-family: inherit; font-size: 14px; font-weight: 700;
+    color: #fff; cursor: pointer; background: var(--dark-pill); letter-spacing: -.1px;
+    box-shadow: 0 8px 20px rgba(20,22,24,.18); transition: background .15s, transform .1s;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  button.primary:hover { background: #23262a; }
+  button.primary:active { transform: scale(.985); }
+  button.primary:disabled { background: #9aa39e; cursor: default; box-shadow: none; }
+  button.primary.sent { background: var(--green-pos); }
+
+  /* ---------- receive ---------- */
+  .qrwrap { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .qrbox { background: #fff; padding: 14px; border-radius: 20px; line-height: 0; box-shadow: inset 0 0 0 1px #eef1ef; }
+  #qr { width: 180px; height: 180px; image-rendering: pixelated; }
+  .recv-addr {
+    margin-top: 16px; width: 100%; display: flex; align-items: center; gap: 8px;
+    background: var(--soft-2); border-radius: 13px; padding: 12px 14px;
+  }
+  .recv-addr .mono { font-size: 12px; word-break: break-all; text-align: left; flex: 1; color: var(--text-dark); font-weight: 500; }
+  .mini {
+    border: 0; background: var(--dark-pill); color: #fff; font-family: inherit; font-weight: 600;
+    font-size: 11.5px; padding: 8px 13px; border-radius: 99px; cursor: pointer; flex: none;
+    transition: background .15s;
+  }
+  .mini:hover { background: #23262a; }
+  .recv-note { color: var(--text-on-mint); font-size: 11px; font-weight: 500; margin: 14px 0 0; }
+
+  /* ---------- activity ---------- */
+  .act-label { text-align: center; font-size: 11.5px; font-weight: 600; color: var(--text-on-mint); padding: 2px 0 8px; }
+  .tx-card {
+    background: var(--card-white); border-radius: 21px; padding: 11px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 3px 10px rgba(20,40,30,.03); margin-bottom: 9px;
+  }
+  .tx-left { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .tx-ava { width: 38px; height: 38px; border-radius: 50%; background: var(--dark-pill); display: grid; place-items: center; flex: none; }
+  .tx-ava svg { width: 17px; height: 17px; stroke: var(--yellow-card); stroke-width: 2; fill: none; }
+  .tx-meta { min-width: 0; }
+  .tx-meta .t { font-size: 13px; font-weight: 600; color: var(--text-dark); line-height: 1.2; }
+  .tx-meta .s { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-top: 2.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+  .tx-amt { font-size: 13.5px; font-weight: 700; letter-spacing: -.2px; white-space: nowrap; }
+  .tx-amt.out { color: var(--red-neg); } .tx-amt.in { color: var(--green-pos); }
+  .empty { text-align: center; color: var(--text-on-mint); font-size: 12.5px; font-weight: 500; padding: 30px 10px; line-height: 1.6; }
+
+  /* ---------- onboarding ---------- */
+  .onboard { text-align: center; padding: 8px 4px 4px; flex: 1; display: flex; flex-direction: column; }
+  .onboard .big-mark {
+    width: 74px; height: 74px; margin: 20px auto 18px; border-radius: 22px;
+    background: var(--dark-pill); display: grid; place-items: center;
+    box-shadow: 0 14px 30px -8px rgba(20,22,24,.35);
+  }
+  .onboard .big-mark span { width: 30px; height: 30px; border-radius: 10px; background: var(--yellow-card); }
+  .onboard h2 { font-size: 22px; font-weight: 800; margin: 0 0 8px; letter-spacing: -.5px; color: var(--text-dark); }
+  .onboard p { color: var(--text-on-mint); font-size: 13.5px; font-weight: 500; margin: 0 auto 20px; max-width: 320px; }
+  .feats { display: grid; gap: 8px; text-align: left; margin: 0 0 20px; }
+  .feat {
+    display: flex; gap: 11px; align-items: center; font-size: 12.5px; font-weight: 600; color: var(--text-dark);
+    background: rgba(255,255,255,.65); border-radius: 16px; padding: 12px 14px;
+  }
+  .feat .fi { width: 28px; height: 28px; border-radius: 9px; flex: none; display: grid; place-items: center; background: var(--dark-pill); }
+  .feat svg { width: 14px; height: 14px; stroke: var(--yellow-card); stroke-width: 2.2; fill: none; }
+  .onboard .spacer { flex: 1; min-height: 8px; }
+
+  /* name input shown before creating */
+  .name-row { margin: 0 0 12px; }
+  .name-row.hidden { display: none; }
+  .name-row input {
+    width: 100%; box-sizing: border-box; font-family: inherit; font-size: 15px; font-weight: 600;
+    color: var(--text-dark); background: var(--card-white); border: 0; border-radius: 16px;
+    padding: 14px 16px; outline: none; box-shadow: 0 3px 10px rgba(20,40,30,.04);
+  }
+  .name-row input::placeholder { color: var(--text-muted); font-weight: 500; }
+  .name-row input:focus { box-shadow: 0 0 0 2px var(--dark-pill); }
+
+  /* passkey chooser */
+  .pk-list { display: grid; gap: 8px; margin: 0 0 12px; text-align: left; }
+  .pk-list.hidden { display: none; }
+  .pk-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 14px; border: 0; border-radius: 16px; background: var(--card-white);
+    color: var(--text-dark); cursor: pointer; width: 100%; font-family: inherit; text-align: left;
+    box-shadow: 0 3px 10px rgba(20,40,30,.03); transition: transform .12s, box-shadow .15s;
+  }
+  .pk-row:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(20,40,30,.07); }
+  .pk-row .pk-ava { width: 34px; height: 34px; border-radius: 50%; background: var(--dark-pill); color: var(--yellow-card); display: grid; place-items: center; font-size: 12px; font-weight: 800; flex: none; }
+  .pk-row .pk-info { flex: 1; min-width: 0; }
+  .pk-row .pk-addr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; font-weight: 600; }
+  .pk-row .pk-label { color: var(--text-muted); font-size: 11px; font-weight: 500; margin-top: 2px; }
+  .pk-row .pk-go svg { width: 15px; height: 15px; stroke: var(--text-muted); stroke-width: 2; fill: none; }
+  .ghost-link {
+    display: inline-block; margin-top: 10px; background: none; border: none;
+    color: #2f3733; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline;
+  }
+  .ghost-link:hover { color: var(--text-dark); }
+
+  /* ---------- toast ---------- */
+  #toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 24px);
+    background: var(--dark-pill); color: #fff;
+    padding: 11px 17px; border-radius: 99px; font-size: 12.5px; font-weight: 600;
+    box-shadow: 0 16px 40px -14px rgba(0,0,0,.5); opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s; max-width: 90%; z-index: 90;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  #toast.good { background: var(--green-pos); } #toast.bad { background: var(--red-neg); }
+
+  .skeleton { background: linear-gradient(90deg, #f0e95a40, #fcf465, #f0e95a40); background-size: 200% 100%; animation: sh 1.3s infinite; border-radius: 8px; color: transparent !important; }
+  @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+  <div class="topbar">
+    <div class="logo"><span class="mark"><span></span></span> Klarity</div>
+    <div class="netchip"><span class="dot"></span> <span id="netName">—</span></div>
+  </div>
+
+  <!-- ONBOARDING -->
+  <section id="onboard" class="onboard">
+    <div class="big-mark"><span></span></div>
+    <h2>Your unstoppable wallet</h2>
+    <p>Secured by a passkey on this device. No seed phrase, no app store, no server that can be taken down.</p>
+    <div class="feats">
+      <div class="feat"><span class="fi"><svg viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg></span> Passkey signing — nothing to steal or phish</div>
+      <div class="feat"><span class="fi"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span> Interface served straight from the chain</div>
+      <div class="feat"><span class="fi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span> Traffic routed through anonymizing transport</div>
+    </div>
+    <div id="passkeyList" class="pk-list hidden"></div>
+    <div id="nameRow" class="name-row hidden">
+      <input id="pkName" type="text" placeholder="Name this wallet" maxlength="40" autocomplete="off" spellcheck="false" />
+    </div>
+    <div class="spacer"></div>
+    <button class="primary" id="createBtn">Create account with passkey</button>
+    <button class="ghost-link" id="pickBtn">Use a different passkey</button>
+  </section>
+
+  <!-- WALLET -->
+  <main id="wallet" class="hidden">
+    <section class="balance-outer">
+      <span class="state" id="statePill">counterfactual</span>
+      <div class="yellow-balance-box">
+        <button class="eye" id="eyeBtn" title="Toggle balance visibility">
+          <svg id="eyeIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <div class="cap">Total balance</div>
+        <div class="sub">on <span id="subNet">this network</span></div>
+        <div class="amt"><span class="n" id="bal">0.0000</span><span class="u">ETH</span></div>
+        <div class="fiat" id="fiat">≈ $0.00</div>
+        <div class="usdc-line"><span class="n" id="balUsdc">0.00</span><span class="u">USDC</span></div>
+      </div>
+
+      <div class="acct-row">
+        <button class="acct" id="acctChip" title="Copy address">
+          <span class="mono" id="acctShort">0x…</span>
+          <span class="copy"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#151816" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></span>
+        </button>
+        <button class="disconnect" id="disconnectBtn" title="Forget this account on this device">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>Disconnect</span>
+        </button>
+      </div>
+
+      <div class="actions">
+        <button class="action" data-go="send">
+          <span class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="13" r="7.5"/><path d="M11 9.8v6.4M9.4 11.4c0-.9.7-1.4 1.6-1.4s1.6.5 1.6 1.3c0 .8-.7 1.1-1.6 1.3-.9.3-1.6.6-1.6 1.4 0 .8.7 1.4 1.6 1.4s1.6-.5 1.6-1.4"/><path d="M16.5 7.5L20 4M16.8 4H20v3.2"/></svg></span>
+          <span class="lbl">Pay</span>
+        </button>
+        <button class="action" data-go="receive">
+          <span class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="13" r="7.5"/><path d="M11 9.8v6.4M9.4 11.4c0-.9.7-1.4 1.6-1.4s1.6.5 1.6 1.3c0 .8-.7 1.1-1.6 1.3-.9.3-1.6.6-1.6 1.4 0 .8.7 1.4 1.6 1.4s1.6-.5 1.6-1.4"/><path d="M20 4l-3.5 3.5M16.5 4.3v3.2h3.2"/></svg></span>
+          <span class="lbl">Receive</span>
+        </button>
+        <button class="action" id="refreshAction">
+          <span class="ic"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg></span>
+          <span class="lbl">Refresh</span>
+        </button>
+      </div>
+    </section>
+
+    <div class="segment">
+      <button data-tab="send" class="on">Pay</button>
+      <button data-tab="receive">Receive</button>
+      <button data-tab="activity">Activity</button>
+    </div>
+
+    <!-- SEND / PAY -->
+    <section class="panel on" id="panel-send">
+      <div class="sheet">
+        <div class="field">
+          <label>Recipient address</label>
+          <div class="inputwrap"><input id="to" class="mono" placeholder="0x0000…0000" autocomplete="off" spellcheck="false" /></div>
+        </div>
+
+        <div class="field">
+          <label>Asset</label>
+          <div class="segment asset-seg">
+            <button type="button" data-asset="eth" class="on">ETH</button>
+            <button type="button" data-asset="usdc">USDC</button>
+          </div>
+        </div>
+
+        <div class="amount-display">
+          <div class="big"><span id="amtBig">0.00</span><span class="u" id="amtUnit">ETH</span></div>
+          <div class="bal">Balance: <span id="payBal">0.0000</span> <span id="payBalUnit">ETH</span></div>
+        </div>
+
+        <div class="keypad">
+          <button class="keypad-btn" data-k="1">1</button>
+          <button class="keypad-btn" data-k="2">2</button>
+          <button class="keypad-btn" data-k="3">3</button>
+          <button class="keypad-btn" data-k="4">4</button>
+          <button class="keypad-btn" data-k="5">5</button>
+          <button class="keypad-btn" data-k="6">6</button>
+          <button class="keypad-btn" data-k="7">7</button>
+          <button class="keypad-btn" data-k="8">8</button>
+          <button class="keypad-btn" data-k="9">9</button>
+          <button class="keypad-btn" data-k=".">.</button>
+          <button class="keypad-btn" data-k="0">0</button>
+          <button class="keypad-btn ghost" data-k="bksp" title="Backspace">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="4"/><path d="M10 9.5l4 5M14 9.5l-4 5"/></svg>
+          </button>
+        </div>
+
+        <button class="primary" id="sendBtn">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>
+          Review &amp; sign with passkey
+        </button>
+      </div>
+    </section>
+
+    <!-- RECEIVE -->
+    <section class="panel" id="panel-receive">
+      <div class="sheet qrwrap">
+        <div class="qrbox"><canvas id="qr" width="180" height="180"></canvas></div>
+        <div class="recv-addr">
+          <span class="mono" id="recvAddr">0x…</span>
+          <button class="mini" id="copyRecv">Copy</button>
+        </div>
+        <p class="recv-note">Send only assets on <span id="recvNet">this network</span> to this address.</p>
+      </div>
+    </section>
+
+    <!-- ACTIVITY -->
+    <section class="panel" id="panel-activity">
+      <div id="activity"><div class="empty">No transactions yet.<br>Your sends will appear here.</div></div>
+    </section>
+  </main>
+  </div>
+
+  <div id="toast"></div>
+
+<script>
+/* =========================================================================
+   Self-contained wallet document (ERC-8244 html() payload).
+   Talks ONLY to window.ethereum injected by the host bridge. No network,
+   no external assets — QR is drawn locally so the null-origin sandbox needs
+   nothing from outside.
+   ========================================================================= */
+const $ = (id) => document.getElementById(id);
+const eth = () => window.ethereum;
+let ADDR = null, CHAIN_HEX = null;
+const seen = new Set();      // tracked sends (activity list)
+let ethUsd = null;           // best-effort price, may stay null
+let balHidden = false;
+let balEth = "0.0000";
+const USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"; // Base Sepolia USDC, 6 decimals
+let balUsdc = "0.00";
+let sendAsset = "eth";       // "eth" | "usdc"
+
+const toast = (msg, kind) => {
+  const t = $("toast"); t.textContent = msg; t.className = "show " + (kind || "");
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.className = t.className.replace("show", "").trim()), 2600);
+};
+const short = (a) => a ? a.slice(0, 6) + "…" + a.slice(-4) : "0x…";
+const fmtEth = (wei) => {
+  const n = Number(BigInt(wei)) / 1e18;
+  return n === 0 ? "0.0000" : n < 0.0001 ? n.toExponential(2) : n.toFixed(4);
+};
+const fmtUsdc = (raw) => { try { return (Number(BigInt(raw)) / 1e6).toFixed(2); } catch { return "—"; } };
+// ERC-20 calldata built by hand (document has no imports): 4-byte selector + 32-byte args.
+const pad32 = (hex) => hex.replace(/^0x/, "").toLowerCase().padStart(64, "0");
+const erc20BalanceOf = (addr) => "0x70a08231" + pad32(addr);
+const erc20Transfer = (to, amount) => "0xa9059cbb" + pad32(to) + pad32("0x" + amount.toString(16));
+async function copy(text, label) {
+  try { await navigator.clipboard.writeText(text); toast((label || "Copied") + " to clipboard", "good"); }
+  catch { toast("Copy blocked by sandbox", "bad"); }
+}
+
+/* ---- tabs & quick actions ---- */
+function selectTab(name) {
+  document.querySelectorAll(".segment button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("on", p.id === "panel-" + name));
+  if (name === "activity") loadActivity();
+}
+document.querySelectorAll(".segment button").forEach((b) => (b.onclick = () => selectTab(b.dataset.tab)));
+document.querySelectorAll(".action[data-go]").forEach((b) => (b.onclick = () => selectTab(b.dataset.go)));
+
+/* ---- network / chain name ---- */
+const CHAIN_NAMES = { "0x14a34": "Base Sepolia", "0x2105": "Base", "0x1": "Ethereum", "0xaa36a7": "Sepolia" };
+function setNetwork(hex) {
+  CHAIN_HEX = hex;
+  const name = CHAIN_NAMES[hex] || ("Chain " + parseInt(hex, 16));
+  $("netName").textContent = name;
+  $("recvNet").textContent = name;
+  $("subNet").textContent = name;
+}
+
+/* ---- balance privacy toggle ---- */
+function renderBalance() {
+  if (balHidden) {
+    $("bal").textContent = "••••";
+    $("fiat").textContent = "≈ $•••";
+    $("balUsdc").textContent = "••••";
+    $("eyeIcon").innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    $("bal").textContent = balEth;
+    const n = Number(balEth) || 0;
+    $("fiat").textContent = ethUsd != null ? "≈ $" + (n * ethUsd).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "≈ $—";
+    $("balUsdc").textContent = balUsdc;
+    $("eyeIcon").innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+$("eyeBtn").onclick = () => { balHidden = !balHidden; renderBalance(); };
+
+/* ---- balance ---- */
+async function refreshBalance() {
+  if (!ADDR) return;
+  $("bal").classList.add("skeleton");
+  try {
+    const wei = await eth().request({ method: "eth_getBalance", params: [ADDR, "latest"] });
+    balEth = fmtEth(wei);
+    try {
+      const raw = await eth().request({ method: "eth_call", params: [{ to: USDC, data: erc20BalanceOf(ADDR) }, "latest"] });
+      balUsdc = fmtUsdc(raw && raw !== "0x" ? raw : "0x0");
+    } catch { balUsdc = "—"; }
+    syncPayBal();
+    renderBalance();
+    const code = await eth().request({ method: "eth_getCode", params: [ADDR, "latest"] });
+    const deployed = code && code !== "0x";
+    $("statePill").textContent = deployed ? "deployed" : "counterfactual";
+    $("statePill").classList.toggle("deployed", !!deployed);
+  } catch (e) { toast("Balance unavailable", "bad"); }
+  finally { $("bal").classList.remove("skeleton"); }
+}
+
+/* ---- activity ---- */
+function loadActivity() {
+  if (!ADDR) return;
+  const box = $("activity");
+  if (!seen.size) { box.innerHTML = '<div class="empty">No transactions yet.<br>Your sends will appear here.</div>'; return; }
+  box.innerHTML = '<div class="act-label">Recent</div>' + [...seen].reverse().map((h) => activityRow(h)).join("");
+}
+function activityRow(tx) {
+  const out = tx.dir === "out";
+  return `<div class="tx-card">
+    <div class="tx-left">
+      <div class="tx-ava"><svg viewBox="0 0 24 24">${out ? '<path d="M12 19V5M5 12l7-7 7 7"/>' : '<path d="M12 5v14M5 12l7 7 7-7"/>'}</svg></div>
+      <div class="tx-meta">
+        <div class="t">${out ? "Sent" : "Received"}</div>
+        <div class="s mono">${short(tx.to || tx.hash)}</div>
+      </div>
+    </div>
+    <div class="tx-amt ${tx.dir}">${out ? "−" : "+"}${tx.amt} ${tx.unit || "ETH"}</div>
+  </div>`;
+}
+function trackSend(to, amt, hash, unit) {
+  seen.add({ dir: "out", to, amt, hash, unit: unit || "ETH" });
+}
+
+/* ---- QR (byte-mode, auto version, no deps) ---- */
+function drawQR(canvas, text) {
+  const qr = QR.make(text);
+  const n = qr.size, cell = Math.floor(180 / (n + 2)), pad = Math.floor((180 - cell * n) / 2);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, 180, 180);
+  ctx.fillStyle = "#141618";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.get(r, c)) ctx.fillRect(pad + c * cell, pad + r * cell, cell, cell);
+}
+
+/* ---- numeric keypad (ETH decimal) ---- */
+let amtStr = "0";
+function renderAmt() {
+  $("amtBig").textContent = amtStr === "" ? "0" : amtStr;
+}
+function pressKey(k) {
+  if (k === "bksp") {
+    amtStr = amtStr.length <= 1 ? "0" : amtStr.slice(0, -1);
+  } else if (k === ".") {
+    if (!amtStr.includes(".")) amtStr = (amtStr === "" ? "0" : amtStr) + ".";
+  } else {
+    // digit
+    if (amtStr === "0") amtStr = k;
+    else {
+      // cap decimals to 8 places
+      const dot = amtStr.indexOf(".");
+      if (dot !== -1 && amtStr.length - dot > 8) return;
+      if (amtStr.replace(".", "").length >= 18) return;
+      amtStr += k;
+    }
+  }
+  renderAmt();
+}
+document.querySelectorAll(".keypad-btn").forEach((b) => (b.onclick = () => pressKey(b.dataset.k)));
+
+/* ---- asset toggle (ETH / USDC) ---- */
+function syncPayBal() {
+  const isU = sendAsset === "usdc";
+  $("amtUnit").textContent = isU ? "USDC" : "ETH";
+  $("payBalUnit").textContent = isU ? "USDC" : "ETH";
+  $("payBal").textContent = isU ? balUsdc : balEth;
+}
+function selectAsset(a) {
+  sendAsset = a;
+  document.querySelectorAll(".asset-seg button").forEach((b) => b.classList.toggle("on", b.dataset.asset === a));
+  amtStr = "0"; renderAmt(); syncPayBal();
+}
+document.querySelectorAll(".asset-seg button").forEach((b) => (b.onclick = () => selectAsset(b.dataset.asset)));
+
+/* ---- onboarding / connect ---- */
+async function hydrate() {
+  const accts = await eth().request({ method: "eth_accounts" }).catch(() => []);
+  if (!accts || !accts.length) return false;
+  ADDR = accts[0];
+  setNetwork(await eth().request({ method: "eth_chainId" }).catch(() => "0x14a34"));
+  $("onboard").classList.add("hidden");
+  $("wallet").classList.remove("hidden");
+  $("acctShort").textContent = short(ADDR);
+  $("recvAddr").textContent = ADDR;
+  drawQR($("qr"), "ethereum:" + ADDR);
+  await refreshBalance();
+  return true;
+}
+
+$("createBtn").onclick = async () => {
+  const btn = $("createBtn");
+  const row = $("nameRow");
+  const input = $("pkName");
+
+  // First tap: reveal the name field so the user can label this wallet.
+  // (window.prompt is blocked in the null-origin sandbox, so we collect inline.)
+  if (row.classList.contains("hidden")) {
+    row.classList.remove("hidden");
+    if (!input.value) input.value = "My Klarity Wallet";
+    input.focus(); input.select();
+    btn.textContent = "Confirm & create";
+    return;
+  }
+
+  const name = input.value.trim();
+  if (!name) { input.focus(); return toast("Give your wallet a name", "bad"); }
+
+  btn.disabled = true; btn.textContent = "Approve the passkey prompt…";
+  try {
+    // Prefer the named-create control method; fall back for older hosts.
+    try {
+      await eth().request({ method: "wallet_createPasskey", params: [name] });
+    } catch (inner) {
+      await eth().request({ method: "eth_requestAccounts" });
+    }
+    row.classList.add("hidden");
+    await hydrate();
+    toast("Account ready", "good");
+  } catch (e) {
+    toast(e.message || "Could not create account", "bad");
+    btn.disabled = false; btn.textContent = "Confirm & create";
+  }
+};
+$("pkName").addEventListener("keydown", (ev) => { if (ev.key === "Enter") $("createBtn").click(); });
+
+$("acctChip").onclick = () => ADDR && copy(ADDR, "Address copied");
+$("copyRecv").onclick = () => ADDR && copy(ADDR, "Address copied");
+$("refreshAction").onclick = async () => { await refreshBalance(); toast("Refreshed"); };
+
+/* Disconnect: two-tap confirm so a stray tap doesn't forget the account. */
+let _dcArmed = false, _dcTimer = null;
+$("disconnectBtn").onclick = async () => {
+  const btn = $("disconnectBtn");
+  const lbl = btn.querySelector("span");
+  if (!_dcArmed) {
+    _dcArmed = true;
+    btn.classList.add("confirm");
+    lbl.textContent = "Tap again to confirm";
+    _dcTimer = setTimeout(() => {
+      _dcArmed = false; btn.classList.remove("confirm"); lbl.textContent = "Disconnect";
+    }, 3000);
+    return;
+  }
+  clearTimeout(_dcTimer); _dcArmed = false;
+  btn.classList.remove("confirm"); lbl.textContent = "Disconnect";
+  try {
+    await eth().request({ method: "wallet_disconnect" });
+    ADDR = null;
+    $("wallet").classList.add("hidden");
+    $("onboard").classList.remove("hidden");
+    $("nameRow").classList.add("hidden");
+    const cb = $("createBtn"); cb.disabled = false; cb.textContent = "Create account with passkey";
+    toast("Disconnected", "good");
+  } catch (e) { toast(e.message || "Could not disconnect", "bad"); }
+};
+
+$("sendBtn").onclick = async () => {
+  const to = $("to").value.trim();
+  const amount = amtStr;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(to)) return toast("Enter a valid 0x address", "bad");
+  const f = parseFloat(amount);
+  if (!(f > 0)) return toast("Enter an amount greater than zero", "bad");
+  const isU = sendAsset === "usdc";
+  const unit = isU ? "USDC" : "ETH";
+  const held = parseFloat(isU ? balUsdc : balEth);
+  if (Number.isFinite(held) && f > held) return toast("Amount exceeds your " + unit + " balance", "bad");
+  const params = isU
+    ? [{ to: USDC, value: "0x0", data: erc20Transfer(to, BigInt(Math.round(f * 1e6))) }]
+    : [{ to, value: "0x" + BigInt(Math.round(f * 1e18)).toString(16) }];
+  const btn = $("sendBtn");
+  btn.disabled = true; btn.textContent = "Confirm with your passkey…";
+  try {
+    const hash = await eth().request({ method: "eth_sendTransaction", params });
+    trackSend(to, f.toString(), hash, unit);
+    btn.classList.add("sent"); btn.textContent = "Sent ✓";
+    toast("Transaction sent", "good");
+    $("to").value = ""; amtStr = "0"; renderAmt();
+    setTimeout(refreshBalance, 3000);
+    setTimeout(() => { btn.classList.remove("sent"); }, 1600);
+    selectTab("activity");
+  } catch (e) { toast(e.message || "Transaction failed", "bad"); }
+  finally {
+    btn.disabled = false;
+    if (!btn.classList.contains("sent")) {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg> Review &amp; sign with passkey';
+    }
+    setTimeout(() => {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg> Review &amp; sign with passkey';
+    }, 1700);
+  }
+};
+
+/* Initials for a passkey avatar from its address (2 hex chars). */
+function pkInitials(addr) {
+  if (!addr) return "0x";
+  return addr.slice(2, 4).toUpperCase();
+}
+
+/* Render the list of known passkeys in onboarding, if any. Each row re-derives
+   the SAME address (no new passkey minted). */
+async function renderPasskeys() {
+  const list = await eth().request({ method: "wallet_listPasskeys" }).catch(() => []);
+  const box = $("passkeyList");
+  box.innerHTML = "";
+  if (!list || !list.length) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  for (const p of list) {
+    const row = document.createElement("button");
+    row.className = "pk-row";
+    row.innerHTML =
+      '<span class="pk-ava">' + pkInitials(p.address) + '</span>' +
+      '<span class="pk-info"><span class="pk-addr">' + short(p.address) + '</span>' +
+      '<span class="pk-label">' + (p.label || "Passkey") + '</span></span>' +
+      '<span class="pk-go"><svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6"/></svg></span>';
+    row.onclick = async () => {
+      try {
+        await eth().request({ method: "wallet_selectPasskey", params: [p.id] });
+        await hydrate();
+        toast("Account ready", "good");
+      } catch (e) { toast(e.message || "Could not load passkey", "bad"); }
+    };
+    box.appendChild(row);
+  }
+}
+
+$("pickBtn").onclick = async () => {
+  try {
+    await eth().request({ method: "wallet_selectPasskey", params: ["__pick__"] });
+    await hydrate();
+    toast("Account ready", "good");
+  } catch (e) { toast(e.message || "Could not select passkey", "bad"); }
+};
+
+window.addEventListener("load", async () => {
+  renderAmt();
+  const had = await hydrate().catch(() => false);
+  if (!had) await renderPasskeys().catch(() => {});
+});
+
+/* =========================================================================
+   Minimal QR encoder (byte mode, versions 1-10, error level M).
+   Compact public-domain-style implementation — enough for an address URI.
+   ========================================================================= */
+var QR = (function () {
+  function make(str) {
+    const data = toUtf8(str);
+    // pick smallest version (1-10) whose M-level byte capacity fits
+    const CAP_M = [0,14,26,42,62,84,106,122,152,180,213];
+    let ver = 1; while (ver < 10 && data.length + 2 > CAP_M[ver]) ver++;
+    const size = 17 + ver * 4;
+    const ECC = [0,10,16,26,18,24,16,18,22,22,26];      // M-level EC bytes/block (single block v1-10 approx)
+    const totalBytes = Math.floor(((size*size) - reservedBits(size, ver)) / 8);
+    const ecLen = ECC[ver];
+    const dataBytes = CAP_M[ver];
+    // build bitstream
+    let bits = [];
+    pushBits(bits, 0b0100, 4);                           // byte mode
+    pushBits(bits, data.length, ver < 10 ? 8 : 16);
+    for (const b of data) pushBits(bits, b, 8);
+    pushBits(bits, 0, 4);                                // terminator (clamped below)
+    while (bits.length % 8) bits.push(0);
+    let bytes = [];
+    for (let i = 0; i < bits.length; i += 8) bytes.push(parseInt(bits.slice(i, i+8).join(""), 2));
+    const pad = [0xEC, 0x11]; let pi = 0;
+    while (bytes.length < dataBytes) bytes.push(pad[pi++ % 2]);
+    const ec = rsEncode(bytes, ecLen);
+    const all = bytes.concat(ec);
+    // place into matrix
+    const m = newMatrix(size);
+    placeFinders(m, size); placeTiming(m, size); placeAlignment(m, size, ver);
+    m[size-8][8] = 1;                                    // dark module
+    const mask = fillData(m, size, all);
+    applyFormat(m, size, mask);
+    return { size, get: (r,c) => m[r][c] === 1 };
+  }
+
+  function toUtf8(s){ const o=[]; for (const ch of unescape(encodeURIComponent(s))) o.push(ch.charCodeAt(0)); return o; }
+  function pushBits(a,v,n){ for(let i=n-1;i>=0;i--) a.push((v>>i)&1); }
+  function reservedBits(size, ver){ // rough reserve so capacity picker errs large; real placement below is exact
+    return size*size - Math.floor(size*size*0.78);
+  }
+  function newMatrix(n){ const m=[]; for(let r=0;r<n;r++){m[r]=new Array(n).fill(null);} return m; }
+  function setFinder(m,r,c){ for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++){const rr=r+i,cc=c+j;if(rr<0||cc<0||rr>=m.length||cc>=m.length)continue;const b=(i>=0&&i<=6&&(j===0||j===6))||(j>=0&&j<=6&&(i===0||i===6))||(i>=2&&i<=4&&j>=2&&j<=4);m[rr][cc]=b?1:0;} }
+  function placeFinders(m,n){ setFinder(m,0,0); setFinder(m,0,n-7); setFinder(m,n-7,0); }
+  function placeTiming(m,n){ for(let i=8;i<n-8;i++){ if(m[6][i]===null)m[6][i]=i%2===0?1:0; if(m[i][6]===null)m[i][6]=i%2===0?1:0; } }
+  const ALIGN=[[],[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
+  function placeAlignment(m,n,ver){ const ps=ALIGN[ver]||[]; for(const r of ps)for(const c of ps){ if((r<=7&&c<=7)||(r<=7&&c>=n-8)||(r>=n-8&&c<=7))continue; for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){const b=Math.max(Math.abs(i),Math.abs(j));m[r+i][c+j]=(b===2||b===0)?1:0;} } }
+  function reserveFormat(m,n){ for(let i=0;i<9;i++){ if(i!==6){ if(m[8][i]===null)m[8][i]=0; if(m[i][8]===null)m[i][8]=0; } } for(let i=0;i<8;i++){ if(m[8][n-1-i]===null)m[8][n-1-i]=0; if(m[n-1-i][8]===null)m[n-1-i][8]=0; } }
+  function fillData(m,n,bytes){
+    reserveFormat(m,n);
+    let bitIdx=0, dirUp=true; const bits=[]; for(const b of bytes) for(let i=7;i>=0;i--) bits.push((b>>i)&1);
+    for(let col=n-1;col>0;col-=2){ if(col===6)col--; for(let k=0;k<n;k++){ const row=dirUp?n-1-k:k; for(let c=0;c<2;c++){ const cc=col-c; if(m[row][cc]===null){ let v=bits[bitIdx++]||0; if(((row+cc)%2)===0) v^=1; m[row][cc]=v; } } } dirUp=!dirUp; }
+    return 0;
+  }
+  function applyFormat(m,n,mask){
+    // error level M (10) + mask 0 => format bits, BCH-encoded (precomputed)
+    const fmt=0b101010000010010; for(let i=0;i<15;i++){ const bit=(fmt>>(14-i))&1;
+      if(i<6)m[8][i]=bit; else if(i<8)m[8][i+1]=bit; else if(i===8)m[7][8]=bit; else m[14-i][8]=bit;
+      if(i<8)m[8][n-1-i]=bit; else m[n-15+i][8]=bit; }
+    m[n-8][8]=1;
+  }
+  // Reed–Solomon over GF(256)
+  const EXP=new Array(512), LOG=new Array(256);
+  (function(){ let x=1; for(let i=0;i<255;i++){ EXP[i]=x; LOG[x]=i; x<<=1; if(x&0x100)x^=0x11d; } for(let i=255;i<512;i++)EXP[i]=EXP[i-255]; })();
+  function gfMul(a,b){ return (a&&b)?EXP[LOG[a]+LOG[b]]:0; }
+  function rsPoly(n){ let p=[1]; for(let i=0;i<n;i++){ const np=new Array(p.length+1).fill(0); for(let j=0;j<p.length;j++){ np[j]^=gfMul(p[j],1); np[j+1]^=gfMul(p[j],EXP[i]); } p=np; } return p; }
+  function rsEncode(data,n){ const gen=rsPoly(n); const res=new Array(n).fill(0); for(const d of data){ const factor=d^res[0]; res.shift(); res.push(0); for(let i=0;i<n;i++) res[i]^=gfMul(gen[i+1]?gen[i+1]:0,factor); } return res; }
+  return { make };
+})();
+</script>
+</body>
+</html>
